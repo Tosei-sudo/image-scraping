@@ -8,15 +8,6 @@
     <link rel="stylesheet" href="./style.css?202404121523" />
     <link rel="icon" href="./favicon.ico">
 </head>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-SYSSR0LYJ1"></script>
-<script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag() { dataLayer.push(arguments); }
-    gtag('js', new Date());
-
-    gtag('config', 'G-SYSSR0LYJ1');
-</script>
 
 <body id="app" v-cloak>
     <header>
@@ -99,7 +90,7 @@
                 </thead>
                 <tbody>
                     <tr v-if="images.length == 0">
-                        <td colspan="4" class="center">画像情報がありません</td>
+                        <td colspan="4" class="center">画像がありません</td>
                     </tr>
                     <tr v-for="(image, i) in images" :key="i" class="image-table-row">
                         <td class="center">{{ i + 1 }}</td>
@@ -116,7 +107,7 @@
         </div>
     </main>
     <script src="https://cdn.jsdelivr.net/npm/vue@3.2/dist/vue.global.prod.min.js"></script>
-    <script src="./code.jquery.com_jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
     <script src="./index.js?202404121523"></script>
 </body>
 
