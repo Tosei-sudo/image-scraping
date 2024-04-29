@@ -1,0 +1,226 @@
+* {
+  box-sizing: border-box;
+}
+
+.image-main-wrap {
+  padding: 0 12px;
+  overflow-x: auto;
+}
+
+.image-main-wrap .image-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+  border: 1px solid #ddd;
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 20px;
+}
+
+.image-main-wrap .image-table thead {
+  background-color: #f5f5f5;
+  color: #333;
+}
+
+.image-main-wrap .image-table thead th {
+  padding: 12px;
+  border: 1px solid #ddd;
+  height: 24px;
+}
+
+.image-main-wrap .image-table tbody tr:nth-child(even) {
+  background-color: #f5f5f5;
+}
+
+.image-main-wrap .image-table tbody tr td {
+  padding: 12px;
+  height: 24px;
+  border: 1px solid #ddd;
+}
+
+.image-main-wrap .image-table tbody tr td.center {
+  text-align: center;
+}
+
+.image-main-wrap .image-table tbody tr:hover {
+  background-color: #e4e8ff;
+}
+
+.image-main-wrap .image-table tbody tr .image-table-command input {
+  padding: 0 12px;
+  border: 1px solid #ddd;
+  border-radius: 0px;
+  background-color: aliceblue;
+  margin-right: 12px;
+  width: 144px;
+  text-align: center;
+}
+
+.image-main-wrap .image-table tbody tr .image-table-command input:enabled {
+  cursor: pointer;
+}
+
+.image-main-wrap .image-table tbody tr .image-table-command input:enabled:hover {
+  background-color: #e4e8ff;
+}
+
+.image-commands {
+  display: flex;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  padding: 0 12px 12px;
+}
+
+.image-commands input {
+  margin-top: 12px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid #ddd;
+  border-radius: 0px;
+  background-color: aliceblue;
+  margin-right: 12px;
+  width: 144px;
+  text-align: center;
+  display: block;
+}
+
+.image-commands input:enabled {
+  cursor: pointer;
+}
+
+.image-commands input:enabled:hover {
+  background-color: #e4e8ff;
+}
+
+.image-url-wrap {
+  width: calc(100% - 36px);
+  padding: 12px 12px 0;
+}
+
+.image-url-wrap #url-input {
+  width: 100%;
+  height: 30px;
+  font-size: large;
+}
+
+.image-state-wrap {
+  padding: 0 12px;
+}
+
+.image-state-wrap .image-state-table {
+  width: 50%;
+  max-width: 300px;
+  border-collapse: collapse;
+  border-spacing: 0;
+  border: 1px solid #ddd;
+  font-size: 14px;
+  color: #333;
+  padding: 12px;
+}
+
+.image-state-wrap .image-state-table thead {
+  background-color: #f5f5f5;
+  color: #333;
+}
+
+.image-state-wrap .image-state-table thead th {
+  padding: 12px;
+  border: 1px solid #ddd;
+  height: 24px;
+}
+
+.image-state-wrap .image-state-table tbody tr:nth-child(even) {
+  background-color: #f5f5f5;
+}
+
+.image-state-wrap .image-state-table tbody tr td {
+  padding: 12px;
+  height: 24px;
+  border: 1px solid #ddd;
+}
+
+.image-state-wrap .image-state-table tbody tr td.center {
+  text-align: center;
+}
+
+.image-state-wrap .image-state-table tbody tr:hover {
+  background-color: #e4e8ff;
+}
+
+[v-cloak] {
+  display: none;
+}
+
+body {
+  margin: 0;
+}
+
+#loading {
+  height: 100vh;
+  width: 100vw;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+}
+
+#loading .loader {
+  /* margin: auto; */
+  position: relative;
+  top: calc(50% - 102px);
+  left: calc(50% - 102px);
+
+  border: 24px solid #eaf0f6;
+  border-radius: 50%;
+  border-top: 24px solid #ff7a59;
+  width: 204px;
+  height: 204px;
+  animation: spinner 4s linear infinite;
+}
+
+.image-loading {
+  height: calc(100vh - 96px);
+  width: 100vw;
+  overflow: hidden;
+}
+
+@keyframes spinner {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+header {
+  background-color: rgb(255, 115, 0);
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.1);
+  align-items: center;
+  color: #fff;
+}
+
+header h1 {
+  margin: 0 0;
+  padding: 12px;
+}
+
+header .image-howto-wrap {
+  width: 100%;
+  height: 24px;
+  background-color: rgb(252, 190, 77);
+  padding-left: 12px;
+}
+
+/*# sourceMappingURL=style.css.map */
+
+.auto-retry-row {
+  color: #333;
+  padding: 0 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}

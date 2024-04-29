@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="jp">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>画像収集ツール</title>
+    <link rel="stylesheet" href="./style.css?202404121523" />
+    <link rel="icon" href="./favicon.ico">
+</head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-SYSSR0LYJ1"></script>
+<script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+
+    gtag('config', 'G-SYSSR0LYJ1');
+</script>
+
+<body id="app" v-cloak>
+    <header>
+        <h1>画像収集ツール</h1>
+        <div class="image-howto-wrap">
+            <a href="./manual.docx" target="_blank" class="image-howto">取扱説明書</a>
+        </div>
+    </header>
+    <main :class="{'image-loading' : state == 99}">
+        <div id="loading" v-show="state == 99">
+            <div class="loader"></div>
+        </div>
+        <form @submit.prevent="getInformation()">
+            <div class="image-url-wrap">
+                <input type="url" name="" id="url-input" v-model="tmpUrl" placeholder="URLを入力" required />
+            </div>
+            <div class="image-commands">
+                <input type="submit" value="画像一覧取得" :disabled="state != 0" />
+                <input type="button" value="一括画像取得" @click="startSave()" :disabled="state != 1" />
+                <input type="button" value="一括再試行" @click="retryAll()" :disabled="retryFlag" />
+                <input type="button" value="ZIP取得" @click="toZip()" :disabled="state != 4" />
+                <input type="button" value="PPTX取得" @click="toPPTX()" :disabled="state != 4" />
+                <input type="button" value="プロジェクト解放" @click="refuse()" />
+            </div>
+            <div class="auto-retry-row">
+                <label for="auto-retry">
+                    <input type="checkbox" name="auto-retry" id="auto-retry" v-model="autoRetry">
+                    自動再試行(1回)
+                </label>
+            </div>
+        </form>
+        <div class="image-state-wrap">
+            <table class="image-state-table">
+                <tbody>
+                    <tr>
+                        <th>状態</th>
+                        <th>件数</th>
+                    </tr>
+                    <tr>
+                        <td>対象画像数</td>
+                        <td class="center">{{ images.length }}</td>
+                    </tr>
+                    <tr>
+                        <td>{{ getStateStr(1) }}</td>
+                        <td class="center">{{ stateCount(1) }}</td>
+                    </tr>
+                    <tr>
+                        <td>{{ getStateStr(2) }}</td>
+                        <td class="center">{{ stateCount(2) }}</td>
+                    </tr>
+                    <tr>
+                        <td>{{ getStateStr(3) }}</td>
+                        <td class="center">{{ stateCount(3) }}</td>
+                    </tr>
+                    <tr>
+                        <td>{{ getStateStr(4) }}</td>
+                        <td class="center">{{ stateCount(4) }}</td>
+                    </tr>
+                    <tr>
+                        <td>{{ getStateStr(5) }}</td>
+                        <td class="center">{{ stateCount(5) }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="image-main-wrap">
+            <div>
+                <div>
+                    <h2>プロジェクトコード : {{ projectCode }}</h2>
+                </div>
+            </div>
+            <table class="image-table">
+                <thead>
+                    <tr class="image-table-row">
+                        <th>番号</th>
+                        <th>パス</th>
+                        <th>状態</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-if="images.length == 0">
+                        <td colspan="4" class="center">画像情報がありません</td>
+                    </tr>
+                    <tr v-for="(image, i) in images" :key="i" class="image-table-row">
+                        <td class="center">{{ i + 1 }}</td>
+                        <td>
+                            <a :href="image.src" target="_blank">{{ image.src }}</a>
+                        </td>
+                        <td class="center">{{ getStateStr(image.state) }}</td>
+                        <td class="image-table-command">
+                            <input type="button" value="再試行" @click="getImage(image)" :disabled="image.state != 5" />
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3.2/dist/vue.global.prod.min.js"></script>
+    <script src="./code.jquery.com_jquery-3.7.0.min.js"></script>
+    <script src="./index.js?202404121523"></script>
+</body>
+
+</html>
