@@ -9,6 +9,17 @@ const STATE = {
     LOADING: 99,
 };
 
+// promise allSettledのポリフィル
+if (!Promise.allSettled) {
+    Promise.allSettled = function (promises) {
+        return Promise.all(promises.map(promise =>
+            promise
+                .then(value => ({ status: "fulfilled", value }))
+                .catch(reason => ({ status: "rejected", reason }))
+        ));
+    };
+}
+
 const $http = async function (url, method = "GET", body = null) {
     let options = {
         method: method,
@@ -76,14 +87,28 @@ const htmlLogic = {
 
         scriptTags.each((i, e) => {
             let script = e.innerText;
-            script = script.replaceAll(/(\r\n|\n|\r)/gm, "").replaceAll(" ", "").replaceAll("\t", "");
+
+            // replaceAllに対応してないversionの別処理
+            if (script.replaceAll === undefined) {
+                script = script.replace(/(\r\n|\n|\r)/gm, "").replace(/ /g, "").replace(/\t/g, "");
+            } else {
+                script = script.replaceAll(/(\r\n|\n|\r)/gm, "").replaceAll(" ", "").replaceAll("\t", "");
+            }
+
             if (script.includes("fancybox.open")) {
                 let aryStartPos = script.indexOf("$.revo_fancybox.open([") + 22;
                 if (aryStartPos == 21) {
                     aryStartPos = script.indexOf("$.fancybox.open([") + 17;
                 };
                 const aryEndPos = script.indexOf("]", aryStartPos);
-                let aryString = "[" + script.slice(aryStartPos, aryEndPos).replaceAll("href", "\"href\"") + "]";
+                let aryString;
+                // replaceAllに対応してないversionの別処理
+                if (script.replaceAll === undefined) {
+                    aryString = "[" + script.slice(aryStartPos, aryEndPos).replace(/href/g, "\"href\"") + "]";
+                } else {
+                    aryString = "[" + script.slice(aryStartPos, aryEndPos).replaceAll("href", "\"href\"") + "]";
+                }
+
                 let ary = (new Function("return " + aryString))();
 
                 ary.forEach(img => {
