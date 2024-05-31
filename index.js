@@ -291,7 +291,8 @@ window.onload = () => {
                 );
             },
             async getProjectCode() {
-                const response = await $http("/image-scraping/api/ProjectMake.php");
+                const targetUrl = this.tmpUrl;
+                const response = await $http("/image-scraping/api/ProjectMake.php?url=" + targetUrl);
                 this.projectCode = await response.text();
             },
             refuse() {

@@ -1,6 +1,8 @@
 <?php
-
 try {
+    include_once "./slack.php";
+    date_default_timezone_set('Asia/Tokyo');
+
     function generateRandomString($len)
     {
         // return random $len char string
@@ -16,6 +18,11 @@ try {
     // projectCode ais random 16 char string
     // generate projectCode
     $projectCode = generateRandomString(16);
+
+    $url = $_GET['url'];
+    // send slack message
+    $msg = "ICT start project: " . $url . " as " . $projectCode . " by " . $_SERVER['REMOTE_ADDR'] . " at " . date("Y-m-d H:i:s");
+    sendMessage($msg);
 
     // make dir to ./Image/{projectCode} 
     mkdir("./Image/" . $projectCode);
