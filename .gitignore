@@ -1,3 +1,5 @@
 *.docx
 .vscode
 *.ini
+node_modules
+api/Image/*
