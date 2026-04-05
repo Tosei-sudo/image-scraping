@@ -24,11 +24,12 @@ try {
     $msg = "ICT start project: " . $url . " as " . $projectCode . " by " . $_SERVER['REMOTE_ADDR'] . " at " . date("Y-m-d H:i:s");
     sendMessage($msg);
 
-    // make dir to ./Image/{projectCode} 
-    mkdir("./Image/" . $projectCode);
+    // // make dir to ./Image/{projectCode} 
+    // mkdir("./Image/" . $projectCode);
 
     // return projectCode
-    header("Content-Type: application/json; charset=utf-8");
+    // header("Content-Type: application/json; charset=utf-8");
+    header("Content-Type: text/plain; charset=utf-8");
 
     echo $projectCode;
 } catch (\Throwable $th) {

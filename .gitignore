@@ -3,3 +3,5 @@
 *.ini
 node_modules
 api/Image/*
+dist/*
+.claude

@@ -1,5 +1,6 @@
 import { STATE } from "./constant.js";
 import { $http } from "./axios.js";
+import { saveImage as saveToIDB } from "./indexeddb.js";
 
 const Logic = {
     getImagesData: async function (images, projectCode) {
@@ -32,6 +33,7 @@ const Logic = {
             }
 
             image.state = STATE.OBTAINED;
+            image.thumbnail = URL.createObjectURL(file);
 
             await this.saveImage(file, projectCode, orderNumber);
 
@@ -73,15 +75,8 @@ const Logic = {
         return new File([data], fName);
     },
     saveImage: async function (file, projectCode, orderNumber=-1) {
-        let formData = new FormData();
-
-        formData.append("image", file);
-        formData.append("projectCode", projectCode);
-
         const name = orderNumber == -1 ? file.name : orderNumber + "_" + file.name;
-        formData.append("fileName", name);
-
-        await $http("/image-scraping/api/SaveImage.php", "POST", formData);
+        await saveToIDB(projectCode, orderNumber, name, file);
     },
 };
 

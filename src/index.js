@@ -9,13 +9,39 @@ if (!Promise.allSettled) {
         ));
     };
 }
+import "../style.css";
+import PptxGenJS from "pptxgenjs";
+import JSZip from "jszip";
+import { createApp } from "vue";
 import { STATE } from "./lib/constant.js";
 import { $http } from "./lib/axios.js";
 import htmlAnalyzer from "./lib/html.js";
 import communication from "./lib/communication.js";
+import { getImages, deleteImages } from "./lib/indexeddb.js";
+
+function blobToDataUrl(blob) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(blob);
+    });
+}
+
+function getImageDimensions(blob) {
+    return new Promise((resolve) => {
+        const url = URL.createObjectURL(blob);
+        const img = new Image();
+        img.onload = () => {
+            resolve({ width: img.naturalWidth, height: img.naturalHeight });
+            URL.revokeObjectURL(url);
+        };
+        img.src = url;
+    });
+}
 
 window.onload = () => {
-    Vue.createApp({
+    createApp({
         data() {
             return {
                 tmpUrl: "",
@@ -83,21 +109,65 @@ window.onload = () => {
                 try {
                     this.state = STATE.LOADING;
 
-                    const res = await $http("/image-scraping/api/ToZip.php?projectCode=" + this.projectCode);
-                    const zipLink = await res.text();
+                    const images = await getImages(this.projectCode);
+                    const zip = new JSZip();
+                    for (const imgData of images) {
+                        zip.file(imgData.fileName, imgData.blob);
+                    }
+                    const content = await zip.generateAsync({ type: "blob" });
+                    const url = URL.createObjectURL(content);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = this.projectCode + ".zip";
+                    a.click();
+                    URL.revokeObjectURL(url);
 
-                    window.open(zipLink, "_blank");
                     this.state = STATE.SAVED;
                 } catch (error) {
                     console.log(error);
                     this.state = STATE.SAVED;
                 }
             },
-            toPPTX() {
-                window.open(
-                    "/image-scraping/api/Topptx.php?projectCode=" +
-                    this.projectCode
-                );
+            async toPPTX() {
+                try {
+                    this.state = STATE.LOADING;
+
+                    const images = await getImages(this.projectCode);
+                    const pptx = new PptxGenJS();
+                    pptx.defineLayout({ name: 'A4_LANDSCAPE', width: 11.693, height: 8.268 });
+                    pptx.layout = 'A4_LANDSCAPE';
+
+                    const SLIDE_W = 11.693;
+                    const SLIDE_H = 8.268;
+
+                    for (const imgData of images) {
+                        const dataUrl = await blobToDataUrl(imgData.blob);
+                        const { width: imgW, height: imgH } = await getImageDimensions(imgData.blob);
+                        const aspectRatio = imgW / imgH;
+
+                        let w, h, x, y;
+                        if (aspectRatio > SLIDE_W / SLIDE_H) {
+                            w = SLIDE_W;
+                            h = SLIDE_W / aspectRatio;
+                            x = 0;
+                            y = (SLIDE_H - h) / 2;
+                        } else {
+                            h = SLIDE_H;
+                            w = SLIDE_H * aspectRatio;
+                            x = (SLIDE_W - w) / 2;
+                            y = 0;
+                        }
+
+                        const slide = pptx.addSlide();
+                        slide.addImage({ data: dataUrl, x, y, w, h });
+                    }
+
+                    await pptx.writeFile({ fileName: this.projectCode + '.pptx' });
+                    this.state = STATE.SAVED;
+                } catch (error) {
+                    console.log(error);
+                    this.state = STATE.SAVED;
+                }
             },
             async getProjectCode() {
                 const targetUrl = this.tmpUrl;
@@ -106,9 +176,7 @@ window.onload = () => {
             },
             refuse() {
                 if (this.projectCode != "") {
-                    $http(
-                        `/image-scraping/api/Refuse.php?projectCode=${this.projectCode}`
-                    );
+                    deleteImages(this.projectCode);
                 }
                 this.state = STATE.READY;
                 this.images = [];

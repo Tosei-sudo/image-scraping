@@ -5,7 +5,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>画像収集ツール</title>
-    <link rel="stylesheet" href="./style.css?202506081749" />
+    <link rel="stylesheet" href="./dist/build.css?202604051528" />
     <link rel="icon" href="./favicon.ico">
 </head>
 
@@ -83,6 +83,7 @@
                 <thead>
                     <tr class="image-table-row">
                         <th>番号</th>
+                        <th>サムネイル</th>
                         <th>パス</th>
                         <th>状態</th>
                         <th>操作</th>
@@ -90,10 +91,13 @@
                 </thead>
                 <tbody>
                     <tr v-if="images.length == 0">
-                        <td colspan="4" class="center">画像がありません</td>
+                        <td colspan="5" class="center">画像がありません</td>
                     </tr>
                     <tr v-for="(image, i) in images" :key="i" class="image-table-row">
                         <td class="center">{{ i + 1 }}</td>
+                        <td class="image-table-thumbnail">
+                            <img v-if="image.thumbnail" :src="image.thumbnail" class="image-thumbnail" />
+                        </td>
                         <td>
                             <a :href="image.src" target="_blank">{{ image.src }}</a>
                         </td>
@@ -106,9 +110,7 @@
             </table>
         </div>
     </main>
-    <script src="https://cdn.jsdelivr.net/npm/vue@3.2/dist/vue.global.prod.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
-    <script type="module" src="./dist/build.js?202604051450"></script>
+    <script src="./dist/build.js?202604051528"></script>
 </body>
 
 </html>
