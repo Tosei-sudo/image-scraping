@@ -17,7 +17,7 @@ import { STATE } from "./lib/constant.js";
 import { $http } from "./lib/axios.js";
 import htmlAnalyzer from "./lib/html.js";
 import communication from "./lib/communication.js";
-import { getImages, deleteImages } from "./lib/indexeddb.js";
+import { getImages, deleteImages, saveHistory, getHistory, deleteHistoryItem } from "./lib/indexeddb.js";
 
 function blobToDataUrl(blob) {
     return new Promise((resolve, reject) => {
@@ -49,6 +49,7 @@ window.onload = () => {
                 projectCode: "",
                 state: STATE.READY,
                 autoRetry: true,
+                history: [],
             };
         },
         computed: {
@@ -60,12 +61,15 @@ window.onload = () => {
                 }
             },
         },
+        async created() {
+            this.history = await getHistory();
+        },
         methods: {
             async getInformation() {
                 try {
                     this.state = STATE.LOADING;
                     let dom = await htmlAnalyzer.getDOM(this.tmpUrl);
-                    
+
                     let img_urls = htmlAnalyzer.getImagesByImgTag(this.tmpUrl, dom);
                     img_urls = img_urls.concat(htmlAnalyzer.getImagesByFancyBox(this.tmpUrl, dom));
 
@@ -77,9 +81,7 @@ window.onload = () => {
                     }
                 } catch (error) {
                     console.log(error);
-                    window.alert(
-                        "画像一覧の取得に失敗しました。"
-                    );
+                    window.alert("画像一覧の取得に失敗しました。");
                     this.state = STATE.READY;
                 }
             },
@@ -99,9 +101,11 @@ window.onload = () => {
                         await this.retryAll();
                     } else {
                         this.state = STATE.SAVED;
+                        await saveHistory(this.projectCode, this.tmpUrl, this.images);
+                        this.history = await getHistory();
                     }
                 } catch (error) {
-                    console.log(error)
+                    console.log(error);
                     this.state = STATE.UNACQUIRED;
                 }
             },
@@ -174,9 +178,10 @@ window.onload = () => {
                 const response = await $http("/image-scraping/api/ProjectMake.php?url=" + targetUrl);
                 this.projectCode = await response.text();
             },
-            refuse() {
-                if (this.projectCode != "") {
-                    deleteImages(this.projectCode);
+            async refuse() {
+                // SAVED状態になっていない場合は未完了画像をクリーンアップ
+                if (this.projectCode && this.state !== STATE.SAVED) {
+                    await deleteImages(this.projectCode);
                 }
                 this.state = STATE.READY;
                 this.images = [];
@@ -189,27 +194,52 @@ window.onload = () => {
                 await communication.getImagesData(images, this.projectCode);
 
                 this.state = STATE.SAVED;
+                await saveHistory(this.projectCode, this.tmpUrl, this.images);
+                this.history = await getHistory();
             },
             async getImage(image) {
                 const index = this.images.indexOf(image);
                 await communication.getImage(image, this.projectCode, index);
             },
+            async restoreProject(item) {
+                this.state = STATE.LOADING;
+                this.projectCode = item.projectCode;
+                this.tmpUrl = item.url;
+
+                const blobs = await getImages(item.projectCode);
+                const blobMap = {};
+                blobs.forEach(b => { blobMap[b.orderNumber] = b; });
+
+                this.images = item.imageMeta.map((img, i) => ({
+                    ...img,
+                    thumbnail: blobMap[i] ? URL.createObjectURL(blobMap[i].blob) : null,
+                }));
+
+                this.state = STATE.SAVED;
+            },
+            async removeHistory(item) {
+                if (!confirm(`「${item.url}」の履歴と画像データを削除しますか？`)) return;
+                await deleteHistoryItem(item.projectCode);
+                this.history = await getHistory();
+                if (this.projectCode === item.projectCode) {
+                    this.state = STATE.READY;
+                    this.images = [];
+                    this.projectCode = "";
+                }
+            },
+            formatDate(isoString) {
+                const d = new Date(isoString);
+                return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+            },
             getStateStr(state) {
                 switch (state) {
-                    case STATE.READY:
-                        return "準備完了";
-                    case STATE.UNACQUIRED:
-                        return "未取得";
-                    case STATE.OBTAINING:
-                        return "取得中";
-                    case STATE.OBTAINED:
-                        return "取得済";
-                    case STATE.SAVED:
-                        return "保存済";
-                    case STATE.FAILED:
-                        return "失敗";
-                    case STATE.LOADING:
-                        return "ロード中";
+                    case STATE.READY: return "準備完了";
+                    case STATE.UNACQUIRED: return "未取得";
+                    case STATE.OBTAINING: return "取得中";
+                    case STATE.OBTAINED: return "取得済";
+                    case STATE.SAVED: return "保存済";
+                    case STATE.FAILED: return "失敗";
+                    case STATE.LOADING: return "ロード中";
                 }
             },
             stateCount(stateStr) {
