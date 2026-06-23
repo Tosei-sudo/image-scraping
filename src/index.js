@@ -61,6 +61,12 @@ window.onload = () => {
                     return this.stateCount(STATE.FAILED) == 0;
                 }
             },
+            allSelected() {
+                return this.images.length > 0 && this.images.every(img => img.selected);
+            },
+            hasSelection() {
+                return this.images.some(img => img.selected);
+            },
         },
         async created() {
             await pruneOldHistory();
@@ -76,7 +82,7 @@ window.onload = () => {
                     let img_urls = htmlAnalyzer.getImagesByImgTag(this.tmpUrl, dom);
                     img_urls = img_urls.concat(htmlAnalyzer.getImagesByFancyBox(this.tmpUrl, dom));
 
-                    this.images = img_urls;
+                    this.images = img_urls.map(img => ({ ...img, selected: false }));
                     if (this.images.length > 0) {
                         this.state = STATE.UNACQUIRED;
                     } else {
@@ -206,6 +212,81 @@ window.onload = () => {
                 const index = this.images.indexOf(image);
                 await communication.getImage(image, this.projectCode, index);
             },
+            toggleSelectAll() {
+                const select = !this.allSelected;
+                this.images.forEach(img => { img.selected = select; });
+            },
+            async downloadSelectedZip() {
+                try {
+                    this.state = STATE.LOADING;
+                    const selectedIndices = new Set(
+                        this.images.map((img, i) => img.selected ? i : -1).filter(i => i >= 0)
+                    );
+                    const allImages = await getImages(this.projectCode);
+                    const selected = allImages.filter(img => selectedIndices.has(img.orderNumber));
+
+                    const zip = new JSZip();
+                    for (const imgData of selected) {
+                        zip.file(imgData.fileName, imgData.blob);
+                    }
+                    const content = await zip.generateAsync({ type: "blob" });
+                    const url = URL.createObjectURL(content);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = this.projectCode + "_selected.zip";
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    this.state = STATE.SAVED;
+                } catch (error) {
+                    console.log(error);
+                    this.state = STATE.SAVED;
+                }
+            },
+            async downloadSelectedPPTX() {
+                try {
+                    this.state = STATE.LOADING;
+                    const selectedIndices = new Set(
+                        this.images.map((img, i) => img.selected ? i : -1).filter(i => i >= 0)
+                    );
+                    const allImages = await getImages(this.projectCode);
+                    const selected = allImages.filter(img => selectedIndices.has(img.orderNumber));
+
+                    const pptx = new PptxGenJS();
+                    pptx.defineLayout({ name: 'A4_LANDSCAPE', width: 11.693, height: 8.268 });
+                    pptx.layout = 'A4_LANDSCAPE';
+
+                    const SLIDE_W = 11.693;
+                    const SLIDE_H = 8.268;
+
+                    for (const imgData of selected) {
+                        const dataUrl = await blobToDataUrl(imgData.blob);
+                        const { width: imgW, height: imgH } = await getImageDimensions(imgData.blob);
+                        const aspectRatio = imgW / imgH;
+
+                        let w, h, x, y;
+                        if (aspectRatio > SLIDE_W / SLIDE_H) {
+                            w = SLIDE_W;
+                            h = SLIDE_W / aspectRatio;
+                            x = 0;
+                            y = (SLIDE_H - h) / 2;
+                        } else {
+                            h = SLIDE_H;
+                            w = SLIDE_H * aspectRatio;
+                            x = (SLIDE_W - w) / 2;
+                            y = 0;
+                        }
+
+                        const slide = pptx.addSlide();
+                        slide.addImage({ data: dataUrl, x, y, w, h });
+                    }
+
+                    await pptx.writeFile({ fileName: this.projectCode + '_selected.pptx' });
+                    this.state = STATE.SAVED;
+                } catch (error) {
+                    console.log(error);
+                    this.state = STATE.SAVED;
+                }
+            },
             async restoreProject(item) {
                 this.state = STATE.LOADING;
                 this.projectCode = item.projectCode;
@@ -217,6 +298,7 @@ window.onload = () => {
 
                 this.images = item.imageMeta.map((img, i) => ({
                     ...img,
+                    selected: false,
                     thumbnail: blobMap[i] ? URL.createObjectURL(blobMap[i].blob) : null,
                 }));
 
