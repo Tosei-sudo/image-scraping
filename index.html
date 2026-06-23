@@ -117,6 +117,7 @@
                 <thead>
                     <tr>
                         <th>取得日時</th>
+                        <th>サムネイル</th>
                         <th>URL</th>
                         <th>画像数</th>
                         <th>操作</th>
@@ -125,6 +126,10 @@
                 <tbody>
                     <tr v-for="item in history" :key="item.projectCode" :class="{'history-active': item.projectCode === projectCode}">
                         <td class="history-date">{{ formatDate(item.timestamp) }}</td>
+                        <td class="history-thumbnail-cell">
+                            <img v-if="historyThumbnails[item.projectCode]" :src="historyThumbnails[item.projectCode]" class="history-thumbnail" />
+                            <span v-else class="history-thumbnail-none">-</span>
+                        </td>
                         <td class="history-url"><a :href="item.url" target="_blank">{{ item.url }}</a></td>
                         <td class="center">{{ item.imageCount }}</td>
                         <td class="history-commands">

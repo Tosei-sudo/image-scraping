@@ -98,6 +98,38 @@ export async function getHistory() {
     });
 }
 
+export async function getRandomImage(projectCode) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, 'readonly');
+        const index = tx.objectStore(STORE_NAME).index('projectCode');
+        const keysReq = index.getAllKeys(projectCode);
+        keysReq.onsuccess = () => {
+            const keys = keysReq.result;
+            if (keys.length === 0) { resolve(null); return; }
+            const randomKey = keys[Math.floor(Math.random() * keys.length)];
+            const imgReq = tx.objectStore(STORE_NAME).get(randomKey);
+            imgReq.onsuccess = () => resolve(imgReq.result || null);
+            imgReq.onerror = () => reject(imgReq.error);
+        };
+        keysReq.onerror = () => reject(keysReq.error);
+    });
+}
+
+export async function pruneOldHistory() {
+    const cutoff = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+    const db = await openDB();
+    const all = await new Promise((resolve, reject) => {
+        const tx = db.transaction(HISTORY_STORE, 'readonly');
+        const req = tx.objectStore(HISTORY_STORE).getAll();
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+    });
+    for (const item of all.filter(i => i.timestamp < cutoff)) {
+        await deleteHistoryItem(item.projectCode);
+    }
+}
+
 export async function deleteHistoryItem(projectCode) {
     const db = await openDB();
     await new Promise((resolve, reject) => {

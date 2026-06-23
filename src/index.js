@@ -17,7 +17,7 @@ import { STATE } from "./lib/constant.js";
 import { $http } from "./lib/axios.js";
 import htmlAnalyzer from "./lib/html.js";
 import communication from "./lib/communication.js";
-import { getImages, deleteImages, saveHistory, getHistory, deleteHistoryItem } from "./lib/indexeddb.js";
+import { getImages, deleteImages, saveHistory, getHistory, deleteHistoryItem, pruneOldHistory, getRandomImage } from "./lib/indexeddb.js";
 
 function blobToDataUrl(blob) {
     return new Promise((resolve, reject) => {
@@ -50,6 +50,7 @@ window.onload = () => {
                 state: STATE.READY,
                 autoRetry: true,
                 history: [],
+                historyThumbnails: {},
             };
         },
         computed: {
@@ -62,7 +63,9 @@ window.onload = () => {
             },
         },
         async created() {
+            await pruneOldHistory();
             this.history = await getHistory();
+            await this.loadHistoryThumbnails();
         },
         methods: {
             async getInformation() {
@@ -103,6 +106,7 @@ window.onload = () => {
                         this.state = STATE.SAVED;
                         await saveHistory(this.projectCode, this.tmpUrl, this.images);
                         this.history = await getHistory();
+                        await this.loadHistoryThumbnails();
                     }
                 } catch (error) {
                     console.log(error);
@@ -196,6 +200,7 @@ window.onload = () => {
                 this.state = STATE.SAVED;
                 await saveHistory(this.projectCode, this.tmpUrl, this.images);
                 this.history = await getHistory();
+                await this.loadHistoryThumbnails();
             },
             async getImage(image) {
                 const index = this.images.indexOf(image);
@@ -217,10 +222,22 @@ window.onload = () => {
 
                 this.state = STATE.SAVED;
             },
+            async loadHistoryThumbnails() {
+                Object.values(this.historyThumbnails).forEach(url => URL.revokeObjectURL(url));
+                const thumbnails = {};
+                await Promise.allSettled(
+                    this.history.map(async (item) => {
+                        const img = await getRandomImage(item.projectCode);
+                        if (img) thumbnails[item.projectCode] = URL.createObjectURL(img.blob);
+                    })
+                );
+                this.historyThumbnails = thumbnails;
+            },
             async removeHistory(item) {
                 if (!confirm(`「${item.url}」の履歴と画像データを削除しますか？`)) return;
                 await deleteHistoryItem(item.projectCode);
                 this.history = await getHistory();
+                await this.loadHistoryThumbnails();
                 if (this.projectCode === item.projectCode) {
                     this.state = STATE.READY;
                     this.images = [];
