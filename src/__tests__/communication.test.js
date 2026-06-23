@@ -76,6 +76,60 @@ describe('getImage', () => {
     });
 });
 
+describe('getImageByURL', () => {
+    const { $http } = require('../lib/axios.js');
+
+    function makeRawHttpBlob(statusLine, contentType, body) {
+        const headers = `${statusLine}\r\nContent-Type: ${contentType}\r\n\r\n`;
+        return new Blob([headers + body], { type: 'application/octet-stream' });
+    }
+
+    test('SVG Content-Type in raw HTTP response produces .svg extension', async () => {
+        $http.mockResolvedValue({
+            blob: jest.fn().mockResolvedValue(makeRawHttpBlob('HTTP/1.1 200 OK', 'image/svg+xml', '<svg></svg>')),
+        });
+        const image = { src: 'https://example.com/graphic', referer: 'https://example.com' };
+        const file = await Logic.getImageByURL(image);
+        expect(file.name).toMatch(/\.svg$/);
+    });
+
+    test('JPEG Content-Type in raw HTTP response produces .jpg extension', async () => {
+        $http.mockResolvedValue({
+            blob: jest.fn().mockResolvedValue(makeRawHttpBlob('HTTP/1.1 200 OK', 'image/jpeg', 'fakejpeg')),
+        });
+        const image = { src: 'https://example.com/photo', referer: 'https://example.com' };
+        const file = await Logic.getImageByURL(image);
+        expect(file.name).toMatch(/\.jpg$/);
+    });
+
+    test('PNG Content-Type in raw HTTP response produces .png extension', async () => {
+        $http.mockResolvedValue({
+            blob: jest.fn().mockResolvedValue(makeRawHttpBlob('HTTP/1.1 200 OK', 'image/png', 'fakepng')),
+        });
+        const image = { src: 'https://example.com/image', referer: 'https://example.com' };
+        const file = await Logic.getImageByURL(image);
+        expect(file.name).toMatch(/\.png$/);
+    });
+
+    test('existing .svg extension is not doubled in raw HTTP path', async () => {
+        $http.mockResolvedValue({
+            blob: jest.fn().mockResolvedValue(makeRawHttpBlob('HTTP/1.1 200 OK', 'image/svg+xml', '<svg></svg>')),
+        });
+        const image = { src: 'https://example.com/logo.svg', referer: 'https://example.com' };
+        const file = await Logic.getImageByURL(image);
+        expect(file.name).toBe('logo.svg');
+    });
+
+    test('normal (non-raw) response uses filename from URL', async () => {
+        $http.mockResolvedValue({
+            blob: jest.fn().mockResolvedValue(new Blob(['imgdata'], { type: 'image/png' })),
+        });
+        const image = { src: 'https://example.com/photo.png', referer: 'https://example.com' };
+        const file = await Logic.getImageByURL(image);
+        expect(file.name).toBe('photo.png');
+    });
+});
+
 describe('getImagesData', () => {
     test('processes all images and each ends in SAVED or FAILED', async () => {
         const fakeFile = new File(['img'], 'img.png', { type: 'image/png' });

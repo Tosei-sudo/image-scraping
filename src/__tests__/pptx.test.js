@@ -1,4 +1,4 @@
-import { blobToDataUrl, getImageDimensions, calcImagePosition, buildPptx } from '../lib/pptx.js';
+import { blobToDataUrl, getImageDimensions, calcImagePosition, buildPptx, rasterizeSvgToPng } from '../lib/pptx.js';
 
 // Mock pptxgenjs so tests don't actually generate PPTX files
 jest.mock('pptxgenjs', () => {
@@ -196,5 +196,168 @@ describe('buildPptx', () => {
         });
         await buildPptx([makeImageData()]);
         expect(mockPptxInstance.addSlide).toHaveBeenCalledTimes(1);
+    });
+});
+
+// ─── rasterizeSvgToPng ───────────────────────────────────────────────────────
+
+describe('rasterizeSvgToPng', () => {
+    let OriginalImage;
+
+    beforeEach(() => { OriginalImage = global.Image; });
+    afterEach(() => {
+        global.Image = OriginalImage;
+        jest.restoreAllMocks();
+    });
+
+    function mockCanvas(pngBlob) {
+        return {
+            width: 0, height: 0,
+            getContext: jest.fn().mockReturnValue({ drawImage: jest.fn() }),
+            toBlob: jest.fn((cb) => cb(pngBlob)),
+        };
+    }
+
+    test('returns PNG blob when SVG loads and canvas.toBlob succeeds', async () => {
+        const pngBlob = new Blob(['png'], { type: 'image/png' });
+        const canvas = mockCanvas(pngBlob);
+        jest.spyOn(document, 'createElement').mockImplementation((tag) => {
+            if (tag === 'canvas') return canvas;
+            return HTMLElement.prototype;
+        });
+
+        global.Image = jest.fn().mockImplementation(() => {
+            const img = { src: '', onload: null, onerror: null, naturalWidth: 100, naturalHeight: 80 };
+            Object.defineProperty(img, 'src', {
+                set() { setTimeout(() => img.onload && img.onload(), 0); },
+                get() { return ''; },
+            });
+            return img;
+        });
+
+        const svgBlob = new Blob(['<svg></svg>'], { type: 'image/svg+xml' });
+        const result = await rasterizeSvgToPng(svgBlob);
+        expect(result).toBe(pngBlob);
+    });
+
+    test('falls back to original SVG blob when canvas.toBlob returns null', async () => {
+        const canvas = mockCanvas(null);
+        jest.spyOn(document, 'createElement').mockImplementation((tag) => {
+            if (tag === 'canvas') return canvas;
+            return HTMLElement.prototype;
+        });
+
+        global.Image = jest.fn().mockImplementation(() => {
+            const img = { src: '', onload: null, onerror: null, naturalWidth: 0, naturalHeight: 0 };
+            Object.defineProperty(img, 'src', {
+                set() { setTimeout(() => img.onload && img.onload(), 0); },
+                get() { return ''; },
+            });
+            return img;
+        });
+
+        const svgBlob = new Blob(['<svg></svg>'], { type: 'image/svg+xml' });
+        const result = await rasterizeSvgToPng(svgBlob);
+        expect(result).toBe(svgBlob);
+    });
+
+    test('falls back to original SVG blob when image fails to load', async () => {
+        global.Image = jest.fn().mockImplementation(() => {
+            const img = { src: '', onload: null, onerror: null };
+            Object.defineProperty(img, 'src', {
+                set() { setTimeout(() => img.onerror && img.onerror(), 0); },
+                get() { return ''; },
+            });
+            return img;
+        });
+
+        const svgBlob = new Blob(['<svg></svg>'], { type: 'image/svg+xml' });
+        const result = await rasterizeSvgToPng(svgBlob);
+        expect(result).toBe(svgBlob);
+    });
+});
+
+// ─── buildPptx SVG handling ───────────────────────────────────────────────────
+
+describe('buildPptx SVG handling', () => {
+    let OriginalImage;
+
+    beforeEach(() => { OriginalImage = global.Image; });
+    afterEach(() => {
+        global.Image = OriginalImage;
+        jest.restoreAllMocks();
+    });
+
+    function setupImageMock(dims = { width: 100, height: 100 }) {
+        global.Image = jest.fn().mockImplementation(() => {
+            const img = { src: '', onload: null, onerror: null, naturalWidth: dims.width, naturalHeight: dims.height };
+            Object.defineProperty(img, 'src', {
+                set() { setTimeout(() => img.onload && img.onload(), 0); },
+                get() { return ''; },
+            });
+            return img;
+        });
+    }
+
+    test('SVG blob (by MIME type) triggers canvas rasterization', async () => {
+        setupImageMock({ width: 200, height: 200 });
+        const pngBlob = new Blob(['png'], { type: 'image/png' });
+        const canvas = {
+            width: 0, height: 0,
+            getContext: jest.fn().mockReturnValue({ drawImage: jest.fn() }),
+            toBlob: jest.fn((cb) => cb(pngBlob)),
+        };
+        jest.spyOn(document, 'createElement').mockImplementation((tag) => {
+            if (tag === 'canvas') return canvas;
+            return HTMLElement.prototype;
+        });
+
+        const svgImageData = { blob: new Blob(['<svg></svg>'], { type: 'image/svg+xml' }) };
+        await buildPptx([svgImageData]);
+
+        expect(mockPptxInstance.addSlide).toHaveBeenCalledTimes(1);
+        expect(canvas.toBlob).toHaveBeenCalled();
+    });
+
+    test('SVG detected by fileName extension triggers canvas rasterization', async () => {
+        setupImageMock({ width: 200, height: 200 });
+        const pngBlob = new Blob(['png'], { type: 'image/png' });
+        const canvas = {
+            width: 0, height: 0,
+            getContext: jest.fn().mockReturnValue({ drawImage: jest.fn() }),
+            toBlob: jest.fn((cb) => cb(pngBlob)),
+        };
+        jest.spyOn(document, 'createElement').mockImplementation((tag) => {
+            if (tag === 'canvas') return canvas;
+            return HTMLElement.prototype;
+        });
+
+        const svgImageData = {
+            blob: new Blob(['<svg></svg>'], { type: 'application/octet-stream' }),
+            fileName: '0_icon.svg',
+        };
+        await buildPptx([svgImageData]);
+
+        expect(mockPptxInstance.addSlide).toHaveBeenCalledTimes(1);
+        expect(canvas.toBlob).toHaveBeenCalled();
+    });
+
+    test('non-SVG image skips canvas rasterization', async () => {
+        setupImageMock({ width: 800, height: 600 });
+        const canvas = {
+            width: 0, height: 0,
+            getContext: jest.fn().mockReturnValue({ drawImage: jest.fn() }),
+            toBlob: jest.fn(),
+        };
+        jest.spyOn(document, 'createElement').mockImplementation((tag) => {
+            if (tag === 'canvas') return canvas;
+            return HTMLElement.prototype;
+        });
+
+        const pngImageData = { blob: new Blob(['png'], { type: 'image/png' }), fileName: '0_photo.png' };
+        await buildPptx([pngImageData]);
+
+        expect(mockPptxInstance.addSlide).toHaveBeenCalledTimes(1);
+        expect(canvas.toBlob).not.toHaveBeenCalled();
     });
 });
