@@ -1,0 +1,54 @@
+name: Build and Deploy
+
+# main ブランチへの push と手動トリガーで実行
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      # 必要なシークレット（Settings > Secrets and variables > Actions）
+      #   FTP_HOST        : FTP サーバーのホスト名
+      #   FTP_USERNAME    : FTP ユーザー名
+      #   FTP_PASSWORD    : FTP パスワード
+      #   FTP_SERVER_DIR  : デプロイ先ディレクトリ（例: /public_html/image-scraping/）
+      - name: Deploy via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: ${{ secrets.FTP_SERVER_DIR }}
+          # ビルド成果物・PHP・HTML・アイコンのみデプロイし、ソースや設定ファイルは除外
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            src/**
+            .github/**
+            .claude/**
+            webpack.config.js
+            package.json
+            package-lock.json
+            style.css
+            .gitignore
