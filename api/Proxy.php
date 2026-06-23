@@ -50,23 +50,15 @@ try {
         header($line);
     }
 
-    curl_close($ch); //終了
     if ($response === false) {
         // response code 500
         http_response_code(500);
         // print curl headers infomation
         echo curl_getinfo($ch);
     } else {
-        // if(str_starts_with($body, "HTTP/1.1")){
-        //     // export text file
-            
-        // }
-        
-        // export text file
-        
-        
         echo $body;
     }
+    curl_close($ch); //終了
 } catch (\Throwable $th) {
     http_response_code(500);
 }
