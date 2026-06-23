@@ -30,6 +30,7 @@ window.onload = () => {
                 autoRetry: true,
                 history: [],
                 historyThumbnails: {},
+                buildDate: typeof __BUILD_DATE__ !== 'undefined' ? __BUILD_DATE__ : '',
             };
         },
         computed: {
