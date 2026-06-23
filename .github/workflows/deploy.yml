@@ -1,6 +1,5 @@
 name: Build and Deploy
 
-# main ブランチへの push と手動トリガーで実行
 on:
   push:
     branches:
@@ -31,7 +30,7 @@ jobs:
       #   FTP_SERVER      : FTP サーバーのホスト名
       #   FTP_USER        : FTP ユーザー名
       #   FTP_PASSWORD    : FTP パスワード
-      #   FTP_SERVER_DIR  : デプロイ先ディレクトリ（例: /public_html/image-scraping/）
+      #   FTP_SERVER_DIR  : デプロイ先ディレクトリ
       - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
@@ -39,7 +38,8 @@ jobs:
           username: ${{ secrets.FTP_USER }}
           password: ${{ secrets.FTP_PASSWORD }}
           server-dir: ${{ secrets.FTP_SERVER_DIR }}
-          # ビルド成果物・PHP・HTML・アイコンのみデプロイし、ソースや設定ファイルは除外
+          # .gitignore の除外ルールを無視してビルド成果物(dist/)もデプロイする
+          dangerous-clean-slate: false
           exclude: |
             **/.git*
             **/.git*/**
@@ -52,3 +52,5 @@ jobs:
             package-lock.json
             style.css
             .gitignore
+          git-ftp-include: |
+            dist/
