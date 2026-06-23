@@ -50,14 +50,48 @@ export function calcImagePosition(imgW, imgH) {
     return { w, h, x, y };
 }
 
+export async function rasterizeSvgToPng(svgBlob, defaultW = 800, defaultH = 600) {
+    const url = URL.createObjectURL(svgBlob);
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+            const w = img.naturalWidth || defaultW;
+            const h = img.naturalHeight || defaultH;
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            canvas.toBlob(blob => {
+                URL.revokeObjectURL(url);
+                resolve(blob || svgBlob);
+            }, 'image/png');
+        };
+        img.onerror = () => {
+            URL.revokeObjectURL(url);
+            resolve(svgBlob);
+        };
+        img.src = url;
+    });
+}
+
+function isSvg(imgData) {
+    if (imgData.blob && (imgData.blob.type === 'image/svg+xml' || imgData.blob.type === 'image/svg')) return true;
+    if (imgData.fileName && imgData.fileName.toLowerCase().endsWith('.svg')) return true;
+    return false;
+}
+
 export async function buildPptx(images) {
     const pptx = new PptxGenJS();
     pptx.defineLayout({ name: 'A4_LANDSCAPE', width: SLIDE_W, height: SLIDE_H });
     pptx.layout = 'A4_LANDSCAPE';
 
     for (const imgData of images) {
-        const dataUrl = await blobToDataUrl(imgData.blob);
-        const { width: imgW, height: imgH } = await getImageDimensions(imgData.blob);
+        let blob = imgData.blob;
+        if (isSvg(imgData)) {
+            blob = await rasterizeSvgToPng(blob);
+        }
+        const dataUrl = await blobToDataUrl(blob);
+        const { width: imgW, height: imgH } = await getImageDimensions(blob);
         const { w, h, x, y } = calcImagePosition(imgW, imgH);
 
         const slide = pptx.addSlide();

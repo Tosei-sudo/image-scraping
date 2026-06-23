@@ -2,6 +2,15 @@ import { STATE } from "./constant.js";
 import { $http } from "./axios.js";
 import { saveImage as saveToIDB } from "./indexeddb.js";
 
+function mimeToExt(contentType) {
+    const mime = (contentType || '').toLowerCase().split(';')[0].trim();
+    return {
+        'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/png': 'png',
+        'image/gif': 'gif', 'image/webp': 'webp', 'image/svg+xml': 'svg',
+        'image/bmp': 'bmp', 'image/tiff': 'tiff',
+    }[mime] || 'jpg';
+}
+
 const Logic = {
     getImagesData: async function (images, projectCode) {
         let tasks = [], group = [];
@@ -67,9 +76,13 @@ const Logic = {
 
         let tmp = await data.text();
         if (tmp.startsWith("HTTP/1.1")) {
-            let dataStartPos = tmp.indexOf("\r\n\r\n") + 4;
+            const ctMatch = tmp.match(/Content-Type:\s*([^\r\n]+)/i);
+            const ext = mimeToExt(ctMatch ? ctMatch[1] : null);
+            const dataStartPos = tmp.indexOf("\r\n\r\n") + 4;
             data = data.slice(dataStartPos);
-            fName = fName + ".jpg";
+            if (!/\.\w{2,5}$/.test(fName)) {
+                fName += '.' + ext;
+            }
         }
 
         return new File([data], fName);

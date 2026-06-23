@@ -19,6 +19,18 @@ if (typeof structuredClone === 'undefined') {
     };
 }
 
+// jsdom does not implement Blob.text() — polyfill via FileReader
+if (typeof Blob !== 'undefined' && !Blob.prototype.text) {
+    Blob.prototype.text = function () {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(reader.error);
+            reader.readAsText(this);
+        });
+    };
+}
+
 // Minimal jQuery-like global used by html.js (webpack ProvidePlugin injects real jQuery at build time)
 function $mock(selector, context) {
     const els = context ? Array.from(context.querySelectorAll(selector)) : [];
