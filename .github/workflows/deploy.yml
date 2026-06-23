@@ -1,6 +1,5 @@
 name: Build and Deploy
 
-# main ブランチへの push と手動トリガーで実行
 on:
   push:
     branches:
@@ -27,11 +26,12 @@ jobs:
       - name: Build
         run: npm run build
 
-      # 必要なシークレット（Settings > Secrets and variables > Actions）
-      #   FTP_SERVER      : FTP サーバーのホスト名
-      #   FTP_USER        : FTP ユーザー名
-      #   FTP_PASSWORD    : FTP パスワード
-      #   FTP_SERVER_DIR  : デプロイ先ディレクトリ（例: /public_html/image-scraping/）
+      - name: Update cache buster in index.html
+        run: |
+          CACHE_BUSTER=$(date +%Y%m%d%H%M)
+          sed -i "s/?[0-9]\{12\}/?${CACHE_BUSTER}/g" index.html
+          echo "Cache buster updated to: ${CACHE_BUSTER}"
+
       - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
@@ -39,7 +39,7 @@ jobs:
           username: ${{ secrets.FTP_USER }}
           password: ${{ secrets.FTP_PASSWORD }}
           server-dir: ${{ secrets.FTP_SERVER_DIR }}
-          # ビルド成果物・PHP・HTML・アイコンのみデプロイし、ソースや設定ファイルは除外
+          dangerous-clean-slate: false
           exclude: |
             **/.git*
             **/.git*/**
@@ -52,3 +52,5 @@ jobs:
             package-lock.json
             style.css
             .gitignore
+          git-ftp-include: |
+            dist/
