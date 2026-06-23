@@ -224,6 +224,12 @@ header .image-howto-wrap {
   align-items: center;
 }
 
+.image-table-select {
+  width: 36px;
+  text-align: center;
+  vertical-align: middle;
+}
+
 .image-table-thumbnail {
   width: 80px;
   text-align: center;
