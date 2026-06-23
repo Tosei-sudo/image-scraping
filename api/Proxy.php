@@ -17,6 +17,8 @@ try {
     //オプション
     curl_setopt($ch, CURLOPT_URL, $url);
     curl_setopt($ch, CURLOPT_HEADER, true);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
 
     // header
     $headers = array(
@@ -30,11 +32,7 @@ try {
 
     // リファラー
     if($referer != null){
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, false);
         $headers[] = "Referer: ".$referer;
-    }else{
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
     }
     curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
 
@@ -54,17 +52,7 @@ try {
     if ($response === false) {
         // response code 500
         http_response_code(500);
-        // print curl headers infomation
-        echo curl_getinfo($ch);
     } else {
-        // if(str_starts_with($body, "HTTP/1.1")){
-        //     // export text file
-            
-        // }
-        
-        // export text file
-        
-        
         echo $body;
     }
 } catch (\Throwable $th) {
