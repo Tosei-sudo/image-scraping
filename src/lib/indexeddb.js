@@ -1,6 +1,7 @@
 const DB_NAME = 'image-scraping';
 const STORE_NAME = 'images';
-const DB_VERSION = 1;
+const HISTORY_STORE = 'history';
+const DB_VERSION = 2;
 
 function openDB() {
     return new Promise((resolve, reject) => {
@@ -10,6 +11,9 @@ function openDB() {
             if (!db.objectStoreNames.contains(STORE_NAME)) {
                 const store = db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
                 store.createIndex('projectCode', 'projectCode', { unique: false });
+            }
+            if (!db.objectStoreNames.contains(HISTORY_STORE)) {
+                db.createObjectStore(HISTORY_STORE, { keyPath: 'projectCode' });
             }
         };
         req.onsuccess = (e) => resolve(e.target.result);
@@ -58,4 +62,49 @@ export async function deleteImages(projectCode) {
         };
         req.onerror = () => reject(req.error);
     });
+}
+
+export async function saveHistory(projectCode, url, images) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(HISTORY_STORE, 'readwrite');
+        const store = tx.objectStore(HISTORY_STORE);
+        const req = store.put({
+            projectCode,
+            url,
+            timestamp: new Date().toISOString(),
+            imageCount: images.length,
+            imageMeta: images.map(img => ({
+                src: img.src,
+                state: img.state,
+                referer: img.referer,
+                blocking: img.blocking,
+            })),
+        });
+        req.onsuccess = () => resolve();
+        req.onerror = () => reject(req.error);
+    });
+}
+
+export async function getHistory() {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(HISTORY_STORE, 'readonly');
+        const store = tx.objectStore(HISTORY_STORE);
+        const req = store.getAll();
+        req.onsuccess = () =>
+            resolve(req.result.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
+        req.onerror = () => reject(req.error);
+    });
+}
+
+export async function deleteHistoryItem(projectCode) {
+    const db = await openDB();
+    await new Promise((resolve, reject) => {
+        const tx = db.transaction(HISTORY_STORE, 'readwrite');
+        const req = tx.objectStore(HISTORY_STORE).delete(projectCode);
+        req.onsuccess = () => resolve();
+        req.onerror = () => reject(req.error);
+    });
+    await deleteImages(projectCode);
 }

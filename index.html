@@ -5,7 +5,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>画像収集ツール</title>
-    <link rel="stylesheet" href="./dist/build.css?202604051528" />
+    <link rel="stylesheet" href="./dist/build.css?202506231720" />
     <link rel="icon" href="./favicon.ico">
 </head>
 
@@ -109,8 +109,34 @@
                 </tbody>
             </table>
         </div>
+
+        <div class="history-wrap">
+            <h2>履歴</h2>
+            <p v-if="history.length == 0" class="history-empty">履歴がありません</p>
+            <table v-else class="history-table">
+                <thead>
+                    <tr>
+                        <th>取得日時</th>
+                        <th>URL</th>
+                        <th>画像数</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="item in history" :key="item.projectCode" :class="{'history-active': item.projectCode === projectCode}">
+                        <td class="history-date">{{ formatDate(item.timestamp) }}</td>
+                        <td class="history-url"><a :href="item.url" target="_blank">{{ item.url }}</a></td>
+                        <td class="center">{{ item.imageCount }}</td>
+                        <td class="history-commands">
+                            <input type="button" value="復元" @click="restoreProject(item)" :disabled="state == 99" />
+                            <input type="button" value="削除" @click="removeHistory(item)" :disabled="state == 99" />
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </main>
-    <script src="./dist/build.js?202604051528"></script>
+    <script src="./dist/build.js?202506231720"></script>
 </body>
 
 </html>
