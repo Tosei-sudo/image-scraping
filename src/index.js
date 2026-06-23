@@ -233,6 +233,47 @@ window.onload = () => {
                 );
                 this.historyThumbnails = thumbnails;
             },
+            async downloadHistoryPPTX(item) {
+                const prevState = this.state;
+                try {
+                    this.state = STATE.LOADING;
+                    const images = await getImages(item.projectCode);
+                    const pptx = new PptxGenJS();
+                    pptx.defineLayout({ name: 'A4_LANDSCAPE', width: 11.693, height: 8.268 });
+                    pptx.layout = 'A4_LANDSCAPE';
+
+                    const SLIDE_W = 11.693;
+                    const SLIDE_H = 8.268;
+
+                    for (const imgData of images) {
+                        const dataUrl = await blobToDataUrl(imgData.blob);
+                        const { width: imgW, height: imgH } = await getImageDimensions(imgData.blob);
+                        const aspectRatio = imgW / imgH;
+
+                        let w, h, x, y;
+                        if (aspectRatio > SLIDE_W / SLIDE_H) {
+                            w = SLIDE_W;
+                            h = SLIDE_W / aspectRatio;
+                            x = 0;
+                            y = (SLIDE_H - h) / 2;
+                        } else {
+                            h = SLIDE_H;
+                            w = SLIDE_H * aspectRatio;
+                            x = (SLIDE_W - w) / 2;
+                            y = 0;
+                        }
+
+                        const slide = pptx.addSlide();
+                        slide.addImage({ data: dataUrl, x, y, w, h });
+                    }
+
+                    await pptx.writeFile({ fileName: item.projectCode + '.pptx' });
+                } catch (error) {
+                    console.log(error);
+                } finally {
+                    this.state = prevState;
+                }
+            },
             async removeHistory(item) {
                 if (!confirm(`「${item.url}」の履歴と画像データを削除しますか？`)) return;
                 await deleteHistoryItem(item.projectCode);

@@ -134,6 +134,7 @@
                         <td class="center">{{ item.imageCount }}</td>
                         <td class="history-commands">
                             <input type="button" value="復元" @click="restoreProject(item)" :disabled="state == 99" />
+                            <input type="button" value="PPTX" @click="downloadHistoryPPTX(item)" :disabled="state == 99" />
                             <input type="button" value="削除" @click="removeHistory(item)" :disabled="state == 99" />
                         </td>
                     </tr>
