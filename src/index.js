@@ -190,6 +190,10 @@ window.onload = () => {
 
                 this.state = STATE.SAVED;
             },
+            async getImage(image) {
+                const index = this.images.indexOf(image);
+                await communication.getImage(image, this.projectCode, index);
+            },
             getStateStr(state) {
                 switch (state) {
                     case STATE.READY:
