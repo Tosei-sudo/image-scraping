@@ -10,7 +10,6 @@ if (!Promise.allSettled) {
     };
 }
 import "../style.css";
-import PptxGenJS from "pptxgenjs";
 import JSZip from "jszip";
 import { createApp } from "vue";
 import { STATE } from "./lib/constant.js";
@@ -18,27 +17,7 @@ import { $http } from "./lib/axios.js";
 import htmlAnalyzer from "./lib/html.js";
 import communication from "./lib/communication.js";
 import { getImages, deleteImages, saveHistory, getHistory, deleteHistoryItem, pruneOldHistory, getRandomImage } from "./lib/indexeddb.js";
-
-function blobToDataUrl(blob) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = () => reject(reader.error);
-        reader.readAsDataURL(blob);
-    });
-}
-
-function getImageDimensions(blob) {
-    return new Promise((resolve) => {
-        const url = URL.createObjectURL(blob);
-        const img = new Image();
-        img.onload = () => {
-            resolve({ width: img.naturalWidth, height: img.naturalHeight });
-            URL.revokeObjectURL(url);
-        };
-        img.src = url;
-    });
-}
+import { buildPptx } from "./lib/pptx.js";
 
 window.onload = () => {
     createApp({
@@ -145,41 +124,13 @@ window.onload = () => {
             async toPPTX() {
                 try {
                     this.state = STATE.LOADING;
-
                     const images = await getImages(this.projectCode);
-                    const pptx = new PptxGenJS();
-                    pptx.defineLayout({ name: 'A4_LANDSCAPE', width: 11.693, height: 8.268 });
-                    pptx.layout = 'A4_LANDSCAPE';
-
-                    const SLIDE_W = 11.693;
-                    const SLIDE_H = 8.268;
-
-                    for (const imgData of images) {
-                        const dataUrl = await blobToDataUrl(imgData.blob);
-                        const { width: imgW, height: imgH } = await getImageDimensions(imgData.blob);
-                        const aspectRatio = imgW / imgH;
-
-                        let w, h, x, y;
-                        if (aspectRatio > SLIDE_W / SLIDE_H) {
-                            w = SLIDE_W;
-                            h = SLIDE_W / aspectRatio;
-                            x = 0;
-                            y = (SLIDE_H - h) / 2;
-                        } else {
-                            h = SLIDE_H;
-                            w = SLIDE_H * aspectRatio;
-                            x = (SLIDE_W - w) / 2;
-                            y = 0;
-                        }
-
-                        const slide = pptx.addSlide();
-                        slide.addImage({ data: dataUrl, x, y, w, h });
-                    }
-
+                    const pptx = await buildPptx(images);
                     await pptx.writeFile({ fileName: this.projectCode + '.pptx' });
                     this.state = STATE.SAVED;
                 } catch (error) {
                     console.log(error);
+                    window.alert("PPTXの生成に失敗しました。");
                     this.state = STATE.SAVED;
                 }
             },
@@ -250,40 +201,12 @@ window.onload = () => {
                     );
                     const allImages = await getImages(this.projectCode);
                     const selected = allImages.filter(img => selectedIndices.has(img.orderNumber));
-
-                    const pptx = new PptxGenJS();
-                    pptx.defineLayout({ name: 'A4_LANDSCAPE', width: 11.693, height: 8.268 });
-                    pptx.layout = 'A4_LANDSCAPE';
-
-                    const SLIDE_W = 11.693;
-                    const SLIDE_H = 8.268;
-
-                    for (const imgData of selected) {
-                        const dataUrl = await blobToDataUrl(imgData.blob);
-                        const { width: imgW, height: imgH } = await getImageDimensions(imgData.blob);
-                        const aspectRatio = imgW / imgH;
-
-                        let w, h, x, y;
-                        if (aspectRatio > SLIDE_W / SLIDE_H) {
-                            w = SLIDE_W;
-                            h = SLIDE_W / aspectRatio;
-                            x = 0;
-                            y = (SLIDE_H - h) / 2;
-                        } else {
-                            h = SLIDE_H;
-                            w = SLIDE_H * aspectRatio;
-                            x = (SLIDE_W - w) / 2;
-                            y = 0;
-                        }
-
-                        const slide = pptx.addSlide();
-                        slide.addImage({ data: dataUrl, x, y, w, h });
-                    }
-
+                    const pptx = await buildPptx(selected);
                     await pptx.writeFile({ fileName: this.projectCode + '_selected.pptx' });
                     this.state = STATE.SAVED;
                 } catch (error) {
                     console.log(error);
+                    window.alert("PPTXの生成に失敗しました。");
                     this.state = STATE.SAVED;
                 }
             },
@@ -320,38 +243,11 @@ window.onload = () => {
                 try {
                     this.state = STATE.LOADING;
                     const images = await getImages(item.projectCode);
-                    const pptx = new PptxGenJS();
-                    pptx.defineLayout({ name: 'A4_LANDSCAPE', width: 11.693, height: 8.268 });
-                    pptx.layout = 'A4_LANDSCAPE';
-
-                    const SLIDE_W = 11.693;
-                    const SLIDE_H = 8.268;
-
-                    for (const imgData of images) {
-                        const dataUrl = await blobToDataUrl(imgData.blob);
-                        const { width: imgW, height: imgH } = await getImageDimensions(imgData.blob);
-                        const aspectRatio = imgW / imgH;
-
-                        let w, h, x, y;
-                        if (aspectRatio > SLIDE_W / SLIDE_H) {
-                            w = SLIDE_W;
-                            h = SLIDE_W / aspectRatio;
-                            x = 0;
-                            y = (SLIDE_H - h) / 2;
-                        } else {
-                            h = SLIDE_H;
-                            w = SLIDE_H * aspectRatio;
-                            x = (SLIDE_W - w) / 2;
-                            y = 0;
-                        }
-
-                        const slide = pptx.addSlide();
-                        slide.addImage({ data: dataUrl, x, y, w, h });
-                    }
-
+                    const pptx = await buildPptx(images);
                     await pptx.writeFile({ fileName: item.projectCode + '.pptx' });
                 } catch (error) {
                     console.log(error);
+                    window.alert("PPTXの生成に失敗しました。");
                 } finally {
                     this.state = prevState;
                 }
